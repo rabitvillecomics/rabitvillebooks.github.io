@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carrot Jail — Flipbook</title>
+<style>
+  body { margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  .bar { display:flex; gap:8px; align-items:center; padding:10px 14px; border-bottom:1px solid #eee; }
+  .spacer { flex:1 }
+  #book { width:min(92vw,1000px); height:min(62vw,680px); margin:16px auto; }
+  button { padding:6px 10px; border:1px solid #ddd; border-radius:10px; background:#fff; cursor:pointer; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.1.2/dist/js/page-flip.browser.js"></script>
+<div class="bar">
+  <a href="index.html">← Library</a>
+  <strong>Carrot Jail</strong>
+  <div class="spacer"></div>
+  <button id="prev">Prev</button>
+  <button id="next">Next</button>
+</div>
+<div id="book" aria-label="Flipbook reader"></div>
+<p id="pageno" style="text-align:center;opacity:.7"></p>
+<script>
+  const total = 9;
+  const path = "comics/carrot-jail/";
+  const el = document.getElementById('book');
+  const flip = new St.PageFlip(el, { width:900, height:600, size:'stretch', showCover:true, maxShadowOpacity:.3 });
+
+  const pages = [];
+  for (let i=1;i<=total;i++){
+    const num = String(i).padStart(2,'0');
+    const img = new Image();
+    img.alt = `Carrot Jail page ${i}`;
+    img.src = `${path}p${num}.jpg`;
+    pages.push(img);
+  }
+  flip.loadFromImages(pages);
+
+  flip.on('flip', e => (document.getElementById('pageno').textContent = `Page ${e.data+1} / ${total}`));
+  document.getElementById('prev').onclick = () => flip.flipPrev();
+  document.getElementById('next').onclick = () => flip.flipNext();
+  addEventListener('keydown', e => { if(e.key==='ArrowLeft') flip.flipPrev(); if(e.key==='ArrowRight') flip.flipNext(); });
+</script>
