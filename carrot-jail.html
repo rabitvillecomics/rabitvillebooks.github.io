@@ -3,13 +3,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Carrot Jail — Flipbook</title>
 <style>
-  body { margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
   .bar { display:flex; gap:8px; align-items:center; padding:10px 14px; border-bottom:1px solid #eee; }
   .spacer { flex:1 }
-  #book { width:min(92vw,1000px); height:min(62vw,680px); margin:16px auto; }
+  #book { width:min(92vw,1000px); height:min(62vw,680px); margin:16px auto; background:#f6f6f6; display:flex; align-items:center; justify-content:center; }
   button { padding:6px 10px; border:1px solid #ddd; border-radius:10px; background:#fff; cursor:pointer; }
+  #fallback { max-width:1000px; margin:16px auto; display:none; }
+  #fallback img { width:100%; height:auto; display:block; margin:0 0 12px; }
+  .msg { text-align:center; color:#666; margin:12px 0; }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/page-flip@2.1.2/dist/js/page-flip.browser.js"></script>
+
 <div class="bar">
   <a href="index.html">← Library</a>
   <strong>Carrot Jail</strong>
@@ -17,26 +20,74 @@
   <button id="prev">Prev</button>
   <button id="next">Next</button>
 </div>
-<div id="book" aria-label="Flipbook reader"></div>
-<p id="pageno" style="text-align:center;opacity:.7"></p>
+
+<div id="book" aria-label="Flipbook reader">Loading…</div>
+<p id="pageno" class="msg"></p>
+<div id="fallback"></div>
+
+<!-- Flipbook library -->
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.1.2/dist/js/page-flip.browser.js"></script>
 <script>
+(async function () {
   const total = 9;
-  const path = "comics/carrot-jail/";
-  const el = document.getElementById('book');
-  const flip = new St.PageFlip(el, { width:900, height:600, size:'stretch', showCover:true, maxShadowOpacity:.3 });
+  const path  = "comics/carrot-jail/"; // images live here: p01.jpg..p09.jpg
+
+  // Small helper: check that first image exists; if not, use fallback
+  function imgExists(src) {
+    return new Promise(res => {
+      const i = new Image();
+      i.onload  = () => res(true);
+      i.onerror = () => res(false);
+      i.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now(); // bust cache
+    });
+  }
+
+  const firstPage = path + "p01.jpg";
+  const ok = await imgExists(firstPage);
+  const bookEl = document.getElementById('book');
+  const pageEl = document.getElementById('pageno');
+  const fbEl   = document.getElementById('fallback');
+
+  // Fallback if images missing OR library not loaded
+  if (!ok || !window.St || !St.PageFlip) {
+    // Show stacked images so readers still see the book
+    fbEl.style.display = 'block';
+    bookEl.style.display = 'none';
+    pageEl.textContent = ok ? "Flipbook library didn’t load, showing simple viewer." :
+                              "Images not found. Check path/names (p01.jpg…p09.jpg).";
+    for (let i = 1; i <= total; i++) {
+      const num = String(i).padStart(2, '0');
+      const img = new Image();
+      img.alt = `Carrot Jail page ${i}`;
+      img.src = `${path}p${num}.jpg`;
+      fbEl.appendChild(img);
+    }
+    return;
+  }
+
+  // Flipbook path
+  const flip = new St.PageFlip(bookEl, {
+    width: 900, height: 600, size: 'stretch',
+    showCover: true, maxShadowOpacity: .3, mobileScrollSupport: true
+  });
 
   const pages = [];
-  for (let i=1;i<=total;i++){
-    const num = String(i).padStart(2,'0');
+  for (let i = 1; i <= total; i++) {
+    const num = String(i).padStart(2, '0');
     const img = new Image();
     img.alt = `Carrot Jail page ${i}`;
     img.src = `${path}p${num}.jpg`;
     pages.push(img);
   }
-  flip.loadFromImages(pages);
 
-  flip.on('flip', e => (document.getElementById('pageno').textContent = `Page ${e.data+1} / ${total}`));
+  flip.loadFromImages(pages);
+  flip.on('flip', e => { pageEl.textContent = `Page ${e.data + 1} / ${total}`; });
+
   document.getElementById('prev').onclick = () => flip.flipPrev();
   document.getElementById('next').onclick = () => flip.flipNext();
-  addEventListener('keydown', e => { if(e.key==='ArrowLeft') flip.flipPrev(); if(e.key==='ArrowRight') flip.flipNext(); });
+  addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft')  flip.flipPrev();
+    if (e.key === 'ArrowRight') flip.flipNext();
+  });
+})();
 </script>
